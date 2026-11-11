@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Festive Update Agent</title>
+  <style>
+    :root{--ink:#1a1a2e;--muted:#6b7280;--line:#e5e7eb;--red:#ef4444;--red2:#fef2f2;--orange:#f97316;--orange2:#fff7ed;--green:#10b981;--green2:#ecfdf5;--purple:#8b5cf6;--purple2:#f5f3ff;--bg:#faf5ff;--white:#fff;--accent:#8b5cf6;--accent2:#ede9fe}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Segoe UI",Arial,sans-serif;height:100vh}
+    .app{height:100vh;max-width:900px;margin:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+    .top{display:flex;align-items:center;justify-content:space-between}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;display:grid;place-items:center;font-size:24px}
+    .brand h1{font-size:20px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+    .status-badge{font-size:13px;border-radius:99px;padding:6px 14px;font-weight:600}
+    .support-bell{position:relative;width:42px;height:42px;margin-left:auto;display:grid;place-items:center;border:1px solid var(--line);border-radius:13px;background:white;color:var(--ink);cursor:pointer;flex:0 0 auto}
+    .support-bell:hover{border-color:var(--accent);color:var(--accent)}.support-bell svg{width:21px;height:21px}
+    .support-count{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 5px;border-radius:99px;background:#ef4444;color:#fff;font-size:11px;line-height:19px;text-align:center;font-weight:800;border:2px solid var(--bg)}
+
+    /* Holiday List */
+    .holidays-section{background:var(--white);border-radius:16px;border:1px solid var(--line);overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column}
+    .section-head{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .section-head h2{margin:0;font-size:17px}
+    .btn{border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:700;cursor:pointer;transition:all .15s}
+    .btn-accent{background:var(--accent);color:white}.btn-accent:hover{background:#7c3aed}
+    .btn-danger{background:var(--red);color:white;font-size:13px;padding:6px 12px}.btn-danger:hover{background:#dc2626}
+    .btn-outline{background:transparent;border:1.5px solid var(--line);color:var(--muted);font-size:13px;padding:6px 12px}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+
+    .holiday-list{overflow:auto;flex:1;min-height:0}
+    .holiday-item{padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;transition:background .1s}
+    .holiday-item:hover{background:#faf8ff}
+    .h-info{flex:1}
+    .h-name{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+    .h-name .dot{width:8px;height:8px;border-radius:50%}
+    .dot-active{background:var(--green)}
+    .dot-upcoming{background:var(--orange)}
+    .dot-past{background:var(--muted)}
+    .h-dates{font-size:13px;color:var(--muted);margin-top:3px}
+    .h-badge{font-size:11px;border-radius:6px;padding:2px 8px;font-weight:600;margin-left:8px}
+    .badge-active{background:var(--green2);color:var(--green)}
+    .badge-upcoming{background:var(--orange2);color:var(--orange)}
+    .badge-past{background:#f3f4f6;color:var(--muted)}
+    .empty{padding:40px 20px;text-align:center;color:var(--muted)}
+    .empty strong{display:block;font-size:18px;color:var(--ink);margin-bottom:6px}
+
+    /* Modal */
+    .modal-bg{position:fixed;inset:0;background:#0005;display:none;align-items:center;justify-content:center;z-index:100}
+    .modal-bg.open{display:flex}
+    .modal{background:var(--white);border-radius:20px;padding:28px;width:min(460px,92vw);box-shadow:0 20px 60px #0002}
+    .modal h2{margin:0 0 20px;font-size:20px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    .form-group input,.form-group select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;font:inherit;outline-color:var(--accent)}
+    .date-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .festival-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{border:1.5px solid var(--line);border-radius:99px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;background:var(--white)}
+    .chip:hover,.chip.active{border-color:var(--accent);background:var(--accent2);color:var(--accent)}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+    .btn-cancel{background:#f3f4f6;color:var(--ink)}.btn-cancel:hover{background:#e5e7eb}
+
+    /* Chat Area */
+    .chat-section{background:var(--white);border-radius:16px;border:1px solid var(--line);overflow:hidden}
+    .chat-head{padding:12px 20px;border-bottom:1px solid var(--line)}
+    .chat-head h3{margin:0;font-size:15px}
+    .chat-head p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+    .chat-messages{padding:16px 20px;min-height:80px;max-height:200px;overflow:auto;display:flex;flex-direction:column;gap:8px;background:#faf8ff}
+    .chat-bubble{max-width:80%;padding:10px 14px;border-radius:12px;font-size:14px}
+    .chat-bubble.bot{align-self:flex-start;background:var(--accent2);border-top-left-radius:4px}
+    .chat-bubble.user{align-self:flex-end;background:var(--green2);border-top-right-radius:4px}
+    .chat-compose{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+    .chat-compose input{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;font:inherit;outline-color:var(--accent)}
+    .chat-compose button{padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:white;font:inherit;font-weight:700;cursor:pointer}
+
+    /* Human support inbox */
+    .support-modal-bg{position:fixed;inset:0;background:#11182788;display:none;align-items:center;justify-content:center;z-index:120;padding:18px}
+    .support-modal-bg.open{display:flex}
+    .support-modal{width:min(760px,96vw);height:min(760px,90vh);background:white;border-radius:18px;box-shadow:0 24px 80px #0003;display:flex;flex-direction:column;overflow:hidden}
+    .support-modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+    .support-modal-head h2{font-size:19px;margin:0}.support-modal-head p{margin:3px 0 0;color:var(--muted);font-size:13px}
+    .support-close{width:36px;height:36px;border:0;border-radius:10px;background:#f3f4f6;font-size:22px;cursor:pointer;color:var(--muted)}
+    .support-view{overflow:auto;flex:1;padding:16px 20px}.support-modal [hidden]{display:none!important}
+    .support-list{display:grid;gap:10px}
+    .support-item{width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;background:white;padding:14px 16px;cursor:pointer;font:inherit;color:var(--ink)}
+    .support-item:hover{border-color:#c4b5fd;background:#faf8ff}
+    .support-item-top{display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:750}
+    .support-item-meta{font-size:12px;color:var(--muted);font-weight:500}
+    .support-item-summary{margin-top:7px;color:#4b5563;font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .support-unread-dot{display:inline-block;width:8px;height:8px;background:#ef4444;border-radius:50%;margin-right:7px}
+    .support-back{border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:0 0 14px}
+    .support-customer{background:#faf8ff;border:1px solid #ede9fe;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+    .support-customer-grid{display:flex;gap:22px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+    .support-customer-grid strong{display:block;color:var(--ink);font-size:14px}
+    .support-summary{margin:12px 0 0;color:#374151;font-size:14px}
+    .support-transcript{display:flex;flex-direction:column;gap:10px}
+    .support-message{max-width:86%;padding:10px 13px;border-radius:12px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+    .support-message.user{align-self:flex-end;background:var(--green2);border-top-right-radius:4px}
+    .support-message.assistant{align-self:flex-start;background:#f3f4f6;border-top-left-radius:4px}
+    .support-message-label{font-size:11px;font-weight:750;color:var(--muted);margin-bottom:3px}
+    .support-message-time{font-size:10px;color:var(--muted);margin-top:5px;text-align:right}
+    .support-empty{padding:44px 20px;text-align:center;color:var(--muted)}
+
+    @media(max-width:600px){.app{padding:12px;gap:12px}.top{gap:8px}.brand h1{font-size:16px}.brand p{display:none}.status-badge{font-size:11px;padding:5px 8px}.modal{padding:20px}.date-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🎉</div>
+      <div><h1>Festive Update Agent</h1><p>Manage holidays and customer support requests</p></div>
+    </div>
+    <div class="status-badge" id="statusBadge" style="background:var(--green2);color:var(--green)">Loading…</div>
+    <button class="support-bell" id="supportBell" type="button" aria-label="Open human support inbox" title="Human support inbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>
+      <span class="support-count" id="supportCount" hidden>0</span>
+    </button>
+  </header>
+
+  <!-- Holiday List -->
+  <section class="holidays-section">
+    <div class="section-head">
+      <h2>📅 Holiday Schedule</h2>
+      <button class="btn btn-accent" onclick="openModal()">+ Update Holiday</button>
+    </div>
+    <div class="holiday-list" id="holidayList">
+      <div class="empty"><strong>No holidays set</strong>Click "Update Holiday" to add festival dates.</div>
+    </div>
+  </section>
+
+  <!-- Chat Area -->
+  <section class="chat-section">
+    <div class="chat-head">
+      <h3>💬 Festive Agent Chat</h3>
+      <p>Type a custom festival name or ask about holidays</p>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-bubble bot">Hello! I manage the holiday schedule. You can add holidays using the button above, or type a custom festival name here and I'll help you add it.</div>
+    </div>
+    <div class="chat-compose">
+      <input id="chatInput" placeholder="Type a custom festival name…" aria-label="Chat message">
+      <button id="chatSend">Send</button>
+    </div>
+  </section>
+</div>
+
+<!-- Human Support Inbox -->
+<div class="support-modal-bg" id="supportModal" aria-hidden="true">
+  <section class="support-modal" role="dialog" aria-modal="true" aria-labelledby="supportTitle">
+    <header class="support-modal-head">
+      <div><h2 id="supportTitle">Human support inbox</h2><p id="supportSubtitle">Customer requests for a human follow-up</p></div>
+      <button class="support-close" id="supportClose" type="button" aria-label="Close inbox">&times;</button>
+    </header>
+    <div class="support-view" id="supportListView"><div class="support-list" id="supportList"></div></div>
+    <div class="support-view" id="supportDetailView" hidden>
+      <button class="support-back" id="supportBack" type="button">&#8592; All requests</button>
+      <div id="supportDetail"></div>
+    </div>
+  </section>
+</div>
+
+<!-- Add Holiday Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>🎊 Add Holiday</h2>
+
+    <div class="form-group">
+      <label>Festival Name</label>
+      <div class="festival-chips" id="festivalChips">
+        <div class="chip" data-name="Pongal">🌾 Pongal</div>
+        <div class="chip" data-name="Diwali">🪔 Diwali</div>
+        <div class="chip" data-name="Christmas">🎄 Christmas</div>
+        <div class="chip" data-name="Eid">🌙 Eid</div>
+        <div class="chip" data-name="Holi">🎨 Holi</div>
+        <div class="chip" data-name="New Year">🎆 New Year</div>
+        <div class="chip" data-name="Independence Day">🇮🇳 Independence Day</div>
+        <div class="chip" data-name="custom">✏️ Other</div>
+      </div>
+    </div>
+
+    <div class="form-group" id="customNameGroup" style="display:none">
+      <label>Custom Festival Name</label>
+      <input id="customName" placeholder="Enter festival name…">
+    </div>
+
+    <div class="form-group">
+      <label>Holiday Dates</label>
+      <div class="date-row">
+        <input type="date" id="startDate" aria-label="Start date">
+        <input type="date" id="endDate" aria-label="End date">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-accent" id="saveBtn" onclick="saveHoliday()">Save Holiday</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let selectedFestival='';
+let supportEscalations=[];
+let selectedSupportId=null;
+
+async function supportRequest(url,options={}){
+  const r=await fetch(url,options);
+  const d=await r.json().catch(()=>({detail:`Server returned HTTP ${r.status}`}));
+  if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);
+  return d;
+}
+async function refreshSupportInbox(){
+  try{
+    const d=await supportRequest('/api/human-support/escalations');
+    supportEscalations=d.escalations||[];
+    const count=Number(d.unread_count||0);
+    $('supportCount').textContent=count>99?'99+':count;
+    $('supportCount').hidden=count===0;
+    if($('supportModal').classList.contains('open')&&selectedSupportId===null)renderSupportList();
+  }catch(e){
+    $('supportCount').hidden=true;
+    console.warn('Could not refresh human support inbox:',e.message);
+  }
+}
+function renderSupportList(){
+  const list=$('supportList');
+  if(!supportEscalations.length){
+    list.innerHTML='<div class="support-empty"><strong>No human support requests yet</strong>New requests will appear here when a customer asks for a person.</div>';
+    return;
+  }
+  list.innerHTML=supportEscalations.map(item=>`<button class="support-item" type="button" data-support-id="${esc(item.id)}">
+    <div class="support-item-top"><span>${item.is_read?'':'<i class="support-unread-dot"></i>'}${esc(item.phone)}</span><span class="support-item-meta">${esc(formatSupportTime(item.created_at))}</span></div>
+    <div class="support-item-meta">Order: ${esc(item.order_id||'Not identified')}</div>
+    <div class="support-item-summary">${esc(item.summary)}</div>
+  </button>`).join('');
+}
+function formatSupportTime(value){
+  try{return new Date(value).toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}catch{return value||''}
+}
+function openSupportInbox(){
+  selectedSupportId=null;
+  $('supportModal').classList.add('open');
+  $('supportModal').setAttribute('aria-hidden','false');
+  $('supportListView').hidden=false;
+  $('supportDetailView').hidden=true;
+  $('supportSubtitle').textContent='Customer requests for a human follow-up';
+  refreshSupportInbox();
+}
+function closeSupportInbox(){
+  $('supportModal').classList.remove('open');
+  $('supportModal').setAttribute('aria-hidden','true');
+  selectedSupportId=null;
+}
+async function showSupportDetails(id){
+  try{
+    const item=await supportRequest(`/api/human-support/escalations/${encodeURIComponent(id)}`);
+    await supportRequest(`/api/human-support/escalations/${encodeURIComponent(id)}/read`,{method:'POST'});
+    selectedSupportId=Number(id);
+    $('supportListView').hidden=true;
+    $('supportDetailView').hidden=false;
+    $('supportSubtitle').textContent=`Request #${item.id} · ${formatSupportTime(item.created_at)}`;
+    const transcript=(item.transcript||[]).map(message=>`<div class="support-message ${message.role==='user'?'user':'assistant'}">
+      <div class="support-message-label">${message.role==='user'?'Customer':'Assistant'}</div>
+      <div>${esc(message.content)}</div>
+      <div class="support-message-time">${esc(formatSupportTime(message.created_at))}</div>
+    </div>`).join('');
+    $('supportDetail').innerHTML=`<div class="support-customer">
+      <div class="support-customer-grid"><div>Customer number<strong>${esc(item.phone)}</strong></div><div>Order ID<strong>${esc(item.order_id||'Not identified')}</strong></div></div>
+      <p class="support-summary"><strong>Summary:</strong> ${esc(item.summary)}</p>
+    </div><div class="support-transcript">${transcript||'<div class="support-empty">No transcript was saved.</div>'}</div>`;
+    await refreshSupportInbox();
+  }catch(e){
+    $('supportList').innerHTML=`<div class="support-empty">Could not load this conversation: ${esc(e.message)}</div>`;
+    $('supportListView').hidden=false;
+    $('supportDetailView').hidden=true;
+    selectedSupportId=null;
+  }
+}
+
+$('supportBell').addEventListener('click',openSupportInbox);
+$('supportClose').addEventListener('click',closeSupportInbox);
+$('supportBack').addEventListener('click',()=>{
+  selectedSupportId=null;
+  $('supportListView').hidden=false;
+  $('supportDetailView').hidden=true;
+  $('supportSubtitle').textContent='Customer requests for a human follow-up';
+  renderSupportList();
+});
+$('supportList').addEventListener('click',event=>{
+  const button=event.target.closest('[data-support-id]');
+  if(button)showSupportDetails(button.dataset.supportId);
+});
+$('supportModal').addEventListener('click',event=>{if(event.target===$('supportModal'))closeSupportInbox()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeSupportInbox()});
+
+// --- Festival Chip Selection ---
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.onclick=()=>{
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    const name=chip.dataset.name;
+    if(name==='custom'){
+      $('customNameGroup').style.display='block';
+      $('customName').focus();
+      selectedFestival='';
+    }else{
+      $('customNameGroup').style.display='none';
+      selectedFestival=name;
+    }
+  };
+});
+
+// --- Modal ---
+function openModal(){
+  $('modal').classList.add('open');
+  // Default dates to today and tomorrow
+  const today=new Date();
+  const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
+  $('startDate').value=fmt(today);
+  $('endDate').value=fmt(tomorrow);
+  selectedFestival='';
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  $('customNameGroup').style.display='none';
+  $('customName').value='';
+}
+function closeModal(){$('modal').classList.remove('open')}
+function fmt(d){return d.toISOString().slice(0,10)}
+
+// --- Save Holiday ---
+async function saveHoliday(){
+  const name=selectedFestival||$('customName').value.trim();
+  const start=$('startDate').value;
+  const end=$('endDate').value;
+  if(!name){alert('Please select or type a festival name.');return}
+  if(!start||!end){alert('Please select start and end dates.');return}
+  $('saveBtn').disabled=true;$('saveBtn').textContent='Saving…';
+  try{
+    const r=await fetch('/api/holidays',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({festival_name:name,start_date:start,end_date:end})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Failed to save');
+    closeModal();
+    addChatBubble('bot',`✅ ${name} holiday added (${formatDate(start)} to ${formatDate(end)}).`);
+    await refreshHolidays();
+  }catch(e){alert(e.message)}
+  finally{$('saveBtn').disabled=false;$('saveBtn').textContent='Save Holiday'}
+}
+
+// --- Delete Holiday ---
+async function deleteHoliday(id,name){
+  if(!confirm(`Delete "${name}" holiday?`))return;
+  try{
+    const r=await fetch(`/api/holidays/${id}`,{method:'DELETE'});
+    if(!r.ok){const d=await r.json();throw new Error(d.detail||'Delete failed')}
+    addChatBubble('bot',`🗑️ ${name} holiday deleted.`);
+    await refreshHolidays();
+  }catch(e){alert(e.message)}
+}
+
+// --- Refresh Holiday List ---
+async function refreshHolidays(){
+  try{
+    const d=await(await fetch('/api/holidays')).json();
+    const list=$('holidayList');
+    if(!d.holidays.length){
+      list.innerHTML='<div class="empty"><strong>No holidays set</strong>Click "Update Holiday" to add festival dates.</div>';
+      $('statusBadge').textContent='No holidays';
+      $('statusBadge').style.background='var(--orange2)';$('statusBadge').style.color='var(--orange)';
+      return;
+    }
+    const today=new Date().toISOString().slice(0,10);
+    let activeCount=0;
+    list.innerHTML=d.holidays.map(h=>{
+      let status,dotClass,badgeClass;
+      if(h.start_date<=today&&h.end_date>=today){status='Active';dotClass='dot-active';badgeClass='badge-active';activeCount++}
+      else if(h.start_date>today){status='Upcoming';dotClass='dot-upcoming';badgeClass='badge-upcoming'}
+      else{status='Past';dotClass='dot-past';badgeClass='badge-past'}
+      return `<div class="holiday-item">
+        <div class="h-info">
+          <div class="h-name"><span class="dot ${dotClass}"></span>${esc(h.festival_name)}<span class="h-badge ${badgeClass}">${status}</span></div>
+          <div class="h-dates">📅 ${formatDate(h.start_date)} — ${formatDate(h.end_date)}</div>
+        </div>
+        <button class="btn btn-danger" onclick="deleteHoliday(${h.id},'${esc(h.festival_name)}')">Delete</button>
+      </div>`;
+    }).join('');
+    if(activeCount>0){
+      $('statusBadge').textContent=`${activeCount} Active Holiday${activeCount>1?'s':''}`;
+      $('statusBadge').style.background='var(--red2)';$('statusBadge').style.color='var(--red)';
+    }else{
+      $('statusBadge').textContent=`${d.holidays.length} Holiday${d.holidays.length>1?'s':''} Set`;
+      $('statusBadge').style.background='var(--green2)';$('statusBadge').style.color='var(--green)';
+    }
+  }catch(e){$('statusBadge').textContent='Server error';$('statusBadge').style.color='var(--red)'}
+}
+
+// --- Chat ---
+function addChatBubble(who,text){
+  const el=document.createElement('div');
+  el.className='chat-bubble '+who;
+  el.textContent=text;
+  $('chatMessages').appendChild(el);
+  $('chatMessages').scrollTop=$('chatMessages').scrollHeight;
+}
+$('chatSend').onclick=()=>{
+  const v=$('chatInput').value.trim();if(!v)return;
+  addChatBubble('user',v);$('chatInput').value='';
+  // If it looks like a festival name, pre-fill the modal
+  selectedFestival=v;
+  addChatBubble('bot',`Got it! I'll use "${v}" as the festival name. Click "Update Holiday" to set the dates, or type the dates here like "Dec 25 to Dec 26".`);
+};
+$('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('chatSend').click()}});
+
+// --- Helpers ---
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function formatDate(d){try{const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}catch{return d}}
+
+// --- Init ---
+refreshHolidays();
+refreshSupportInbox();
+setInterval(()=>{refreshHolidays();refreshSupportInbox()},10000);
+</script>
+</body>
+</html>

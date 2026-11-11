@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Status Tracker</title>
+  <style>
+    :root{--ink:#19212b;--muted:#667384;--line:#dce3e9;--paper:#fff;--bg:#f3f6f5;--green:#087f5b;--green-pale:#e5f5ee;--blue:#34658a;--shadow:0 8px 28px #1a2d3810}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Segoe UI",Arial,sans-serif}
+    main{max-width:980px;margin:42px auto;padding:0 20px 48px}.head{margin-bottom:22px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;color:var(--green);font-size:12px;font-weight:750}.head h1{font-size:32px;margin:5px 0}.head p{color:var(--muted);margin:0}
+    .panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:24px;margin:16px 0}.selector{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.selector label{font-weight:700}.selector select{min-width:220px;padding:12px 14px;border:1px solid #bfcbd3;border-radius:10px;background:white;font:inherit;color:var(--ink)}
+    .summary{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin:8px 0 20px}.summary h2{margin:0;font-size:22px}.pill{border-radius:999px;background:#eef2f4;padding:7px 12px;font-size:13px;font-weight:700}.progress{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .step{border:1px solid var(--line);border-radius:13px;padding:17px;min-height:160px;display:flex;flex-direction:column;justify-content:space-between;background:#fff}.step.done{border-color:#91d2b3;background:#f6fcf8}.step.current{box-shadow:inset 0 0 0 2px #dcefe5}.step-top{display:flex;align-items:center;gap:10px}.number{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#edf1f3;font-weight:750;color:var(--muted)}.done .number{background:var(--green);color:white}.step h3{font-size:17px;margin:0}.stamp{font-size:12px;color:var(--muted);margin:7px 0 0}.step button{width:100%;border:0;border-radius:9px;padding:11px;font:inherit;font-weight:700;background:var(--green);color:white;cursor:pointer}.step button:disabled{cursor:not-allowed;background:#edf1f3;color:#8b96a2}.step.done button{background:var(--green-pale);color:var(--green)}
+    .history-title{font-size:17px;margin:0 0 12px}.history{display:grid;gap:9px}.history-item{display:flex;justify-content:space-between;gap:15px;padding:11px 13px;border-radius:9px;background:#f7f9fa}.history-item time{font-size:13px;color:var(--muted)}.empty{color:var(--muted);padding:12px 0}.notice{color:var(--muted);font-size:13px;margin-top:18px}.toast{min-height:24px;color:var(--green);font-weight:650;margin-top:12px}.toast.error{color:#b42318}
+    @media(max-width:680px){main{margin:24px auto}.panel{padding:17px}.progress{grid-template-columns:1fr}.step{min-height:130px}.head h1{font-size:27px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="head"><div class="eyebrow">Order operations</div><h1>Order status tracker</h1><p>Choose an order, then record its progress. Every update is saved in the local database.</p></header>
+  <section class="panel selector"><label for="orderSelect">Order ID</label><select id="orderSelect" aria-label="Choose an order"></select><span id="savedNote" class="pill">Saved to database</span></section>
+  <section class="panel">
+    <div class="summary"><h2 id="orderHeading">Choose an order</h2><span id="currentStatus" class="pill">Not started</span></div>
+    <div id="progress" class="progress"></div><div id="message" class="toast" role="status"></div>
+  </section>
+  <section class="panel"><h2 class="history-title">Status history</h2><div id="history" class="history"></div><p class="notice">Updates are stored in <code>orders.db</code> beside the program. The steps must be recorded in order: Shipped → On the way → Delivered.</p></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);let orders=[];const steps=['Shipped','On the way','Delivered'];
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function load(){const r=await fetch('/api/orders');const d=await r.json();orders=d.orders;const select=$('orderSelect');const old=select.value;select.innerHTML=orders.map(o=>`<option value="${esc(o.order_id)}">${esc(o.order_id)}</option>`).join('');if(old&&orders.some(o=>o.order_id===old))select.value=old;render()}
+function render(){const order=orders.find(o=>o.order_id===$('orderSelect').value);if(!order)return;$('orderHeading').textContent=`Order ${order.order_id}`;$('currentStatus').textContent=order.status;$('progress').innerHTML=steps.map((s,i)=>{const done=steps.indexOf(order.status)>=i;const canClick=i===(steps.indexOf(order.status)+1);const time=order.history.find(h=>h.status===s)?.changed_at;return `<article class="step ${done?'done':''} ${order.status===s?'current':''}"><div><div class="step-top"><span class="number">${done?'✓':i+1}</span><h3>${esc(s)}</h3></div>${time?`<p class="stamp">Saved ${esc(time)}</p>`:''}</div><button ${canClick?'':'disabled'} data-status="${esc(s)}">${done?'Saved':canClick?'Set to '+esc(s):i>steps.indexOf(order.status)?'Waiting':'Completed'}</button></article>`}).join('');$('history').innerHTML=order.history.length?order.history.map(h=>`<div class="history-item"><strong>${esc(h.status)}</strong><time>${esc(h.changed_at)}</time></div>`).join(''):'<div class="empty">No status updates saved yet. Choose Shipped to begin.</div>';document.querySelectorAll('[data-status]').forEach(b=>b.addEventListener('click',()=>saveStatus(order.order_id,b.dataset.status)))}
+async function saveStatus(id,status){$('message').className='toast';$('message').textContent='Saving…';try{const r=await fetch(`/api/orders/${encodeURIComponent(id)}/status`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status})});const d=await r.json();if(!r.ok)throw new Error(d.detail||'Could not save status');$('message').textContent=`${d.status} saved for ${d.order_id}.`;await load()}catch(e){$('message').className='toast error';$('message').textContent=e.message}}
+$('orderSelect').addEventListener('change',render);load().catch(e=>{$('message').className='toast error';$('message').textContent='Could not load orders: '+e.message});
+</script>
+</body>
+</html>

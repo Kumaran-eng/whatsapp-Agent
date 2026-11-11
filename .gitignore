@@ -1,0 +1,16 @@
+# Secrets and local environment configuration
+.env
+.env.*
+!.env.example
+
+# Python environments, caches, and compiled files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local databases and generated exports
+*.db
+*.sqlite
+*.sqlite3
+test_audit.xlsx
